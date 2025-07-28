@@ -194,4 +194,40 @@ class WordService
             return [];
         }
     }
+
+    public function validateWord(string $word, Game $game): bool
+    {
+        // Step 1: Check if the word is valid according to dictionary
+        // if (!$this->dictionaryService->isValidWord($word)) {
+        //     return false;
+        // }
+
+        // Step 2: Get available letters from the puzzle
+        $availableLetters = array_count_values(str_split(strtolower($game->puzzle_string)));
+
+        // Step 3: Subtract the already used letters
+        $usedLetters = is_array($game->used_letters)
+            ? $game->used_letters
+            : json_decode($game->used_letters, true) ?? [];
+
+        foreach ($usedLetters as $used) {
+            if (isset($availableLetters[$used])) {
+                $availableLetters[$used]--;
+                if ($availableLetters[$used] === 0) {
+                    unset($availableLetters[$used]);
+                }
+            }
+        }
+
+        // Step 4: Check if the new word can be formed with remaining letters
+        $neededLetters = array_count_values(str_split(strtolower($word)));
+
+        foreach ($neededLetters as $char => $count) {
+            if (!isset($availableLetters[$char]) || $availableLetters[$char] < $count) {
+                return false;
+            }
+        }
+
+        return true;
+    }
 }
