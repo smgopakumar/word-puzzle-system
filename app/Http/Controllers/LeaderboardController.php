@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\Submission;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\JsonResponse;
+use App\Models\Game;
 
 class LeaderboardController extends Controller
 {
@@ -18,22 +19,22 @@ class LeaderboardController extends Controller
     public function index(): JsonResponse
     {
         try {
-            // Fetch top 10 unique words with their highest score
-            $top = Submission::select('word', DB::raw('MAX(score) as score'))
-                ->groupBy('word')
-                ->orderByDesc('score')
-                ->limit(10)
-                ->get();
+            $result = Game::with('submissions:game_id,word,score')
+                ->select('id', 'student_name', 'score') // score here is total score of the game
+                ->get()
+                ->map(function ($game) {
+                    return [
+                        'student_name' => $game->student_name,
+                        'max_score' => $game->score,
+                        'top_words' => $game->submissions
+                    ];
+                });
 
-            // Return the top scores as JSON response
-            return response()->json($top);
+            return response()->json($result);
         } catch (\Exception $e) {
-            // Log the exception if needed: logger($e->getMessage());
-
-            // Return a generic error response
             return response()->json([
                 'error' => 'Failed to fetch leaderboard',
-                'message' => $e->getMessage() // For debugging; remove in production
+                'message' => $e->getMessage()
             ], 500);
         }
     }
